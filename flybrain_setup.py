@@ -6,8 +6,11 @@ from matplotlib.collections import LineCollection
 PINK, LILAC, DEEP = "#e8739b", "#c9b8e8", "#8d7bb0"
 plt.rcParams["figure.dpi"] = 110
 
-# Teacher: the RAW link to the zip on GitHub
-ZIP_URL = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/classroom_data.zip"
+ZIP_URL = "https://raw.githubusercontent.com/3lza/JBS_biomedic-nask-rta/main/classroom_data.zip"
+ALLOW_UPLOAD = False   
+
+OK = False
+SETUP_ERROR = None    
 
 
 def _find():
@@ -16,7 +19,6 @@ def _find():
 
 
 def _unzip_any():
-    # tries the biggest zip first, skips broken ones
     for z in sorted(glob.glob("**/*.zip", recursive=True), key=os.path.getsize, reverse=True):
         try:
             with zipfile.ZipFile(z) as f:
@@ -26,33 +28,34 @@ def _unzip_any():
             continue
 
 
-D = _find()
+try:
+    D = _find()
 
-if D is None:                       # 1) download from GitHub
-    try:
+    if D is None:
         urllib.request.urlretrieve(ZIP_URL, "classroom_data.zip")
-    except Exception as e:
-        print("Lejupielāde neizdevās:", e)
-    _unzip_any()
-    D = _find()
+        _unzip_any()
+        D = _find()
 
-if D is None:                       # 2) last resort: upload by hand
-    from google.colab import files
-    print("Augšupielādē classroom_data.zip:")
-    files.upload()
-    _unzip_any()
-    D = _find()
+    if D is None and ALLOW_UPLOAD:
+        from google.colab import files
+        files.upload()
+        _unzip_any()
+        D = _find()
 
-assert D, "Datu faili nav atrasti. Pasauc skolotāju!"
+    if D is None:
+        raise FileNotFoundError("data folder not found")
 
-edges   = pd.read_csv(D + "edges_small.csv")
-neurons = pd.read_csv(D + "neurons_small.csv")
-top     = pd.read_csv(D + "top_neurons.csv")
-hubs    = pd.read_csv(D + "hubs_all.csv")
-stats   = json.load(open(D + "stats.json"))
+    edges   = pd.read_csv(D + "edges_small.csv")
+    neurons = pd.read_csv(D + "neurons_small.csv")
+    top     = pd.read_csv(D + "top_neurons.csv")
+    hubs    = pd.read_csv(D + "hubs_all.csv")
+    stats   = json.load(open(D + "stats.json"))
 
-# Latvian-named copy of the table, for Q2
-top_lv = top.rename(columns={"id": "ID", "type": "Neirona veids",
-                             "class": "Klase", "total_weight": "Svars"})
+    top_lv = top.rename(columns={"id": "ID", "type": "Neirona veids",
+                                 "class": "Klase", "total_weight": "Svars"})
+    OK = True
+    print("Viss labi, turpini darbu")
 
-print("Gatavs! Izmantoto datu mape:", D)
+except Exception as e:
+    SETUP_ERROR = repr(e)
+    print("Pasauc kādu")
