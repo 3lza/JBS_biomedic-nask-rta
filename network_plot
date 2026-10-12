@@ -1,0 +1,68 @@
+from matplotlib.animation import FuncAnimation
+from matplotlib.collections import LineCollection
+from IPython.display import HTML
+import matplotlib as mpl
+mpl.rcParams["animation.embed_limit"] = 100
+
+hub = int(top.iloc[0]["id"])
+N = 30      # ✏️ pamēģini pamainīt šo - kas mainās? atbildi ieraksti GoogleForms
+P = 10      # ✏️ pamēģini pamainīt arī šo :).
+
+
+best = edges[edges.pre == hub].nlargest(N, "weight")
+partners = list(dict.fromkeys(best.post.tolist()))
+nodes = [hub] + partners
+N = len(partners)
+rank = {n: i for i, n in enumerate(nodes)}
+
+sub = edges[edges.pre.isin(nodes) & edges.post.isin(nodes) & (edges.pre != edges.post)]
+
+
+G = nx.from_pandas_edgelist(sub, "pre", "post")
+G.add_nodes_from(nodes)
+pos = nx.spring_layout(G, seed=7, k=0.5)
+
+def segments(df):
+    s = np.array([[pos[a], pos[b]] for a, b in zip(df.pre, df.post)])
+    w = 0.4 + 3.5 * np.sqrt(df.weight.values / sub.weight.max())
+    return s, w
+
+is_hub_edge = (sub.pre == hub) | (sub.post == hub)
+hub_df   = sub[is_hub_edge]
+other_df = sub[~is_hub_edge].sort_values("weight", ascending=False)
+
+seg1, w1 = segments(hub_df)
+r1 = np.array([rank[b] if a == hub else rank[a] for a, b in zip(hub_df.pre, hub_df.post)])
+seg2, w2 = segments(other_df) if len(other_df) else (np.empty((0,2,2)), np.array([]))
+
+sizes  = np.array([900] + [90] * N)
+colors = [PINK] + [LILAC] * N
+
+fig, ax = plt.subplots(figsize=(6.5, 6.5), dpi=80)
+xs = [p[0] for p in pos.values()]; ys = [p[1] for p in pos.values()]
+ax.set_xlim(min(xs) - .1, max(xs) + .1); ax.set_ylim(min(ys) - .1, max(ys) + .1)
+ax.axis("off")
+
+lc2 = LineCollection([], colors=DEEP, alpha=0.25)
+lc1 = LineCollection([], colors=DEEP, alpha=0.35)
+ax.add_collection(lc2); ax.add_collection(lc1)
+sc = ax.scatter([], [], linewidths=0)
+
+def update(f):
+    k = min(f, N)
+    sc.set_offsets(np.array([pos[n] for n in nodes[:k+1]]))
+    sc.set_sizes(sizes[:k+1]); sc.set_facecolors(colors[:k+1])
+
+    m = r1 <= k
+    lc1.set_segments(list(seg1[m])); lc1.set_linewidths(w1[m])
+
+    j = max(0, f - N)
+    c = int(len(seg2) * min(j, P) / P)
+    lc2.set_segments(list(seg2[:c])); lc2.set_linewidths(w2[:c])
+
+    ax.set_title(f"Centrālais neirons un tā tuvākie savienojumi  ({k}/{N})", fontsize=10, loc="left")
+    return sc, lc1, lc2
+
+anim = FuncAnimation(fig, update, frames=N + 1 + P, interval=200, blit=False)
+plt.close(fig)
+HTML(anim.to_jshtml())
