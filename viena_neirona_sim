@@ -1,0 +1,47 @@
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+import matplotlib as mpl
+mpl.rcParams["animation.embed_limit"] = 100
+
+swc = pd.read_csv(D + "neuron.swc", sep=r"\s+", comment="#", header=None,
+                  names=["n","t","x","y","z","r","parent"])
+
+parent = dict(zip(swc.n, swc.parent))
+depth = {}
+def get_depth(n):
+    path = []
+    while n in parent and n not in depth and parent[n] in parent:
+        path.append(n); n = parent[n]
+    d = depth.get(n, 0)
+    for p in reversed(path):
+        d += 1; depth[p] = d
+    depth.setdefault(n, 0)
+    return depth[path[0]] if path else depth[n]
+for n in swc.n: get_depth(n)
+swc["depth"] = swc.n.map(depth)
+
+m = swc.merge(swc[["n","x","y","z"]], left_on="parent", right_on="n", suffixes=("","_p"))
+m = m.sort_values("depth")
+
+VIEW   = "y"    # ✏️ pamēģini ierakstīt z - iegūsi citu leņķi
+FRAMES = 80     # ✏️ vari palielināt skaitli. Kas mainās? Ieraksti GoogleForms
+COLOR  = PINK
+
+segs = np.stack([m[["x",VIEW]].values, m[["x_p",VIEW+"_p"]].values], axis=1)
+step = max(1, len(segs) // FRAMES)
+
+fig, ax = plt.subplots(figsize=(5,7), dpi=80)
+lc = LineCollection([], linewidths=0.6, colors=COLOR)
+ax.add_collection(lc)
+ax.set_xlim(segs[:,:,0].min(), segs[:,:,0].max())
+ax.set_ylim(segs[:,:,1].max(), segs[:,:,1].min())
+ax.axis("off")
+ax.set_title(f"Viens neirona savienojums: {stats['skeleton_type']}", loc="left")
+
+def update(frame):
+    lc.set_segments(segs[: (frame + 1) * step])
+    return (lc,)
+
+anim = FuncAnimation(fig, update, frames=FRAMES, interval=60, blit=True)
+plt.close(fig)
+HTML(anim.to_jshtml())
