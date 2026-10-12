@@ -1,0 +1,8 @@
+# ✏️ Kā Tu domā - cik neironu savienojumu ir Drosophila Melanogaster smadzenēs? Ieraksti pie my_guess = ...
+my_guess = 100000
+
+print("Neironi:     ", f"{stats['n_neurons']:,}")
+print("Savienojumi: ", f"{stats['n_connections']:,}")
+print("Tavs minējums:  ", f"{my_guess:,}")
+print(f"Īstais savienojumu skaits ir {stats['n_connections']/my_guess:,.0f}x lielāks par Tavu minējumu!.")
+print(f"Tas ir apmēram {stats['n_connections']/stats['n_neurons']:.0f} savienojumu uz vienu neironu.")
