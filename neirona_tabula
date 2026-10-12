@@ -1,0 +1,2 @@
+show = 25   # ✏️ Cik biežāk atrodamos neironus parādīt rezultātos?
+top_lv.head(show)[["ID","Neirona veids","Klase","Svars"]]
