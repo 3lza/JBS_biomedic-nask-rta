@@ -1,0 +1,12 @@
+# šis sagatavo visu darbam: datus, bibliotēkas etc.
+
+import sys, urllib.request
+try:
+    urllib.request.urlretrieve(
+        "https://raw.githubusercontent.com/3lza/JBS_biomedic-nask-rta/main/flybrain_setup.py",
+        "flybrain_setup.py")
+    sys.modules.pop("flybrain_setup", None)
+    from flybrain_setup import *
+except Exception as e:
+    SETUP_ERROR = repr(e)
+    print("Pasauc kādu")
